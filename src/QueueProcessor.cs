@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using ImageMagick;
 
 namespace NENA
 {
@@ -55,9 +56,41 @@ namespace NENA
 
                     Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
 
-                    // Simulated conversion logic (replace with actual image conversion)
-                    await Task.Delay(500); // Simulate file processing
-                    File.Copy(filePath, targetPath, true); 
+                    // Actual AVIF (or other format) conversion using Magick.NET
+                    try
+                    {
+                        using var image = new MagickImage(filePath);
+
+                        // You can set various encoder settings here
+                        // For AVIF, typical properties might be something like:
+                        // - image.Quality = 50; // Just an example – adjusts compression level
+                        // - image.Settings.SetDefine(MagickFormat.Avif, "speed", "6"); // Speed vs. quality trade-off (1=best, 10=fastest)
+                        // - image.Settings.SetDefine(MagickFormat.Avif, "effort", "6");
+
+                        // Convert the image to the desired format
+                        switch (format.ToLower())
+                        {
+                            case "avif":
+                                image.Format = MagickFormat.Avif;
+                                break;
+                            case "webp":
+                                image.Format = MagickFormat.WebP;
+                                break;
+                            // Add any other formats needed
+                            default:
+                                // Fallback or handle other formats
+                                image.Format = MagickFormat.Png;
+                                break;
+                        }
+
+                        // Finally, write the converted image
+                        image.Write(targetPath);
+                    }
+                    catch (Exception conversionEx)
+                    {
+                        Console.Error.WriteLine($"[ERROR] Conversion to {format} failed for {filePath}: {conversionEx.Message}");
+                        // Optionally rethrow or continue
+                    }
 
                     stopwatch.Stop();
                     Console.WriteLine($"{timerLabel} - Completed in {stopwatch.ElapsedMilliseconds}ms");
@@ -74,7 +107,6 @@ namespace NENA
                 _semaphore.Release();
             }
         }
-
         private bool NeedsProcessing(string filePath)
         {
             string extension = Path.GetExtension(filePath).ToLower();
