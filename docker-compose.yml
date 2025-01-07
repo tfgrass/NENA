@@ -1,0 +1,13 @@
+# for local testing
+services:
+  attachment-converter:
+    build: .
+    volumes:
+      - ./testfolder:/app/uploads
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - UPLOADS_PATH=/app/uploads
+      - OUTPUT_FORMATS=webp,avif
+      - CDN77_API_KEY=your_api_key_here
+      - CDN77_CACHE_ID=your_cache_id_here
+    tty: true
