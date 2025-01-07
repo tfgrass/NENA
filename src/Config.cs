@@ -17,6 +17,11 @@ namespace NENA
         private Config()
         {
             LoadConfiguration();
+
+            if(Debug)
+            {
+                PrintConfiguration();
+            }
         }
 
         // Access the single instance
@@ -25,11 +30,11 @@ namespace NENA
         // Load environment variables and CLI args (if needed)
         private void LoadConfiguration()
         {
-            UploadsPath = Environment.GetEnvironmentVariable("UPLOADS_PATH") ?? "/opt/app/uploads";
-            OutputFormats = Environment.GetEnvironmentVariable("OUTPUT_FORMATS") ?? "webp,avif";
+            UploadsPath = Environment.GetEnvironmentVariable("UPLOADS_PATH") ?? "/app/uploads";
+            OutputFormats = Environment.GetEnvironmentVariable("OUTPUT_FORMATS") ?? "avif";
             Cdn77ApiKey = Environment.GetEnvironmentVariable("CDN77_API_KEY") ?? string.Empty;
             Cdn77CacheId = Environment.GetEnvironmentVariable("CDN77_CACHE_ID") ?? string.Empty;
-            Debug = false;
+            Debug = Environment.GetEnvironmentVariable("DEBUG")?.ToLower() == "true";
 
             // Fetch CLI arguments
             string[] args = Environment.GetCommandLineArgs();

@@ -1,39 +1,20 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Concurrent;
 
 namespace NENA
 {
-    class Entrypoint
+    class Program
     {
         static void Main(string[] args)
         {
-            var pathToWatch = "/app/uploads"; // Directory in Docker to watch
-            Config.Instance.PrintConfiguration();
-            if (!Directory.Exists(pathToWatch))
-            {
-                Console.WriteLine($"Directory does not exist: {pathToWatch}");
-                return;
-            }
+            var fileQueue = new BlockingCollection<string>();
+            var fileWatcher = new FileSystemWatcherService(fileQueue);
+            var processor = new QueueProcessor(fileQueue);
+            
+            processor.StartProcessing();
 
-            var watcher = new FileSystemWatcher
-            {
-                Path = pathToWatch,
-                Filter = "*.*", // Watch all files
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
-            };
-
-            watcher.Created += OnFileCreated;
-            watcher.EnableRaisingEvents = true;
-
-            Console.WriteLine($"Watching {pathToWatch} for changes. Press [enter] to exit.");
-
-            // Keep the program running
+            Console.WriteLine("File watcher is running. Press [ENTER] to exit...");
             Console.ReadLine();
-        }
-
-        private static void OnFileCreated(object sender, FileSystemEventArgs e)
-        {
-            Console.WriteLine($"New file created: {e.FullPath}");
         }
     }
 }
