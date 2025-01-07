@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using Serilog;
 
 namespace NENA
 {
@@ -10,50 +11,85 @@ namespace NENA
         private readonly string _uploadsPath;
         private readonly FileSystemWatcher _watcher;
 
+        // Tracks whether the scanner is in the middle of scanning
+        private bool _isScanning;
+
+        /// <summary>
+        /// Indicates if the scanner is currently scanning.
+        /// </summary>
+        public bool IsBusy => _isScanning;
+
         public FileSystemScanner(BlockingCollection<string> queue)
         {
             _fileQueue = queue;
-            _uploadsPath = Config.Instance.UploadsPath ?? "/opt/app/uploads";
+
+            _uploadsPath = Config.Instance.UploadsPath!;
 
             _watcher = new FileSystemWatcher(_uploadsPath)
             {
                 IncludeSubdirectories = true,
                 EnableRaisingEvents = true,
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
+                NotifyFilter = NotifyFilters.FileName 
+                               | NotifyFilters.LastWrite 
+                               | NotifyFilters.CreationTime
             };
 
             _watcher.Created += OnCreated;
             _watcher.Deleted += OnDeleted;
         }
-
+        
+        /// <summary>
+        /// Scans the specified directory (or the default uploads path if none is provided),
+        /// adding files to the queue. This method won't run if a scan is already in progress.
+        /// </summary>
+        /// <param name="directory">The directory to scan; defaults to _uploadsPath if null.</param>
         public void ScanDirectory(string directory = null)
         {
-            Console.WriteLine($"Scanning directory: {directory ?? _uploadsPath}");
-            directory ??= _uploadsPath;
+            // If we are already scanning, skip
+            if (_isScanning)
+            {
+                Log.Verbose("ScanDirectory called while another scan is already in progress. Skipping new scan request.");
+                return;
+            }
+
+            // Mark as busy
+            _isScanning = true;
+
+            // Use a local variable to determine which directory to scan
+            var targetDirectory = directory ?? _uploadsPath;
 
             try
             {
-                foreach (var file in Directory.EnumerateFiles(directory, "*.*", SearchOption.AllDirectories))
+                Log.Verbose($"Scanning directory: {targetDirectory}");
+
+                foreach (var file in Directory.EnumerateFiles(
+                             targetDirectory, "*.*", SearchOption.AllDirectories))
                 {
                     _fileQueue.Add(file);
                 }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[ERROR] Failed to scan directory {directory}: {ex.Message}");
+                Log.Error(ex, $"Failed to scan directory {targetDirectory}.");
+            }
+            finally
+            {
+                // Mark as no longer busy
+                _isScanning = false;
             }
         }
 
         private void OnCreated(object sender, FileSystemEventArgs e)
         {
-            Console.WriteLine($"[INFO] File created: {e.FullPath}");
+             Log.Verbose($"[INFO] File created: {e.FullPath}");
             _fileQueue.Add(e.FullPath);
         }
 
         private void OnDeleted(object sender, FileSystemEventArgs e)
         {
-            Console.WriteLine($"[INFO] File deleted: {e.FullPath}");
-            _fileQueue.Add($"DELETED:{e.FullPath}");
+            // maybe handle deletion logic here
+            Log.Verbose($"File deleted: {e.FullPath}");
+
         }
 
         public void Dispose()

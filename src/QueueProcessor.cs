@@ -14,7 +14,7 @@ namespace NENA
         private readonly string[] _outputFormats;
         private readonly string _uploadsPath;
 
-        public QueueProcessor(BlockingCollection<string> queue, int maxConcurrency = 8)
+        public QueueProcessor(BlockingCollection<string> queue, int maxConcurrency = 40)
         {
             _fileQueue = queue;
             _semaphore = new SemaphoreSlim(maxConcurrency);
