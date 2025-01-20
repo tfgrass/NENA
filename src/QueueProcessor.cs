@@ -84,7 +84,7 @@ namespace NENA
                     }
 
                     stopwatch.Stop();
-                    Log.Information($"{timerLabel} - Completed in {stopwatch.ElapsedMilliseconds}ms");
+                    Log.Debug($"{timerLabel} - Completed in {stopwatch.ElapsedMilliseconds}ms");
 
                     PurgeFromCDN(targetPath);
                 }
