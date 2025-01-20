@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 using Serilog;
 
@@ -7,7 +6,7 @@ namespace NENA
 {
     public sealed class FileSystemScanner : IDisposable
     {
-        private readonly BlockingCollection<string> _fileQueue;
+        private readonly UniqueFileQueue _fileQueue;   // <- changed
         private readonly string _uploadsPath;
         private readonly FileSystemWatcher _watcher;
 
@@ -19,28 +18,27 @@ namespace NENA
         /// </summary>
         public bool IsBusy => _isScanning;
 
-        public FileSystemScanner(BlockingCollection<string> queue)
+        public FileSystemScanner(UniqueFileQueue queue)
         {
             _fileQueue = queue;
-
             _uploadsPath = Config.Instance.UploadsPath!;
 
             _watcher = new FileSystemWatcher(_uploadsPath)
             {
                 IncludeSubdirectories = true,
                 EnableRaisingEvents = true,
-                NotifyFilter = NotifyFilters.FileName 
-                               | NotifyFilters.LastWrite 
+                NotifyFilter = NotifyFilters.FileName
+                               | NotifyFilters.LastWrite
                                | NotifyFilters.CreationTime
             };
 
             _watcher.Created += OnCreated;
             _watcher.Deleted += OnDeleted;
         }
-        
+
         /// <summary>
         /// Scans the specified directory (or the default uploads path if none is provided),
-        /// adding files to the queue. This method won't run if a scan is already in progress.
+        /// attempting to enqueue each file. This method won't run if a scan is already in progress.
         /// </summary>
         /// <param name="directory">The directory to scan; defaults to _uploadsPath if null.</param>
         public void ScanDirectory(string directory = null)
@@ -52,20 +50,33 @@ namespace NENA
                 return;
             }
 
-            // Mark as busy
             _isScanning = true;
-
-            // Use a local variable to determine which directory to scan
             var targetDirectory = directory ?? _uploadsPath;
 
             try
             {
                 Log.Verbose($"Scanning directory: {targetDirectory}");
 
-                foreach (var file in Directory.EnumerateFiles(
-                             targetDirectory, "*.*", SearchOption.AllDirectories))
+                foreach (var file in Directory.EnumerateFiles(targetDirectory, "*.*", SearchOption.AllDirectories))
                 {
-                    _fileQueue.Add(file);
+                    // Determine the path of the file relative to _uploadsPath
+                    var relativePath = Path.GetRelativePath(_uploadsPath, file);
+
+                    // If 'avif' is the first folder (or the entire relative path),
+                    // skip processing this file
+                    if (file.StartsWith(_uploadsPath + Path.DirectorySeparatorChar +  "avif" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                       )
+                    {
+//                        Log.Verbose($"Skipping file in avif folder: {file}");
+                        continue;
+                    }
+
+                    // Otherwise, enqueue the file
+                    bool added = _fileQueue.TryAdd(file);
+                    if (added)
+                        Log.Verbose($"Enqueued: {file}");
+                    else
+                        Log.Verbose($"Skipped (already in queue): {file}");
                 }
             }
             catch (Exception ex)
@@ -74,22 +85,24 @@ namespace NENA
             }
             finally
             {
-                // Mark as no longer busy
                 _isScanning = false;
             }
         }
 
+
         private void OnCreated(object sender, FileSystemEventArgs e)
         {
-             Log.Verbose($"[INFO] File created: {e.FullPath}");
-            _fileQueue.Add(e.FullPath);
+            // Try to enqueue; if it was already in the queue, this is a no-op
+            bool added = _fileQueue.TryAdd(e.FullPath);
+            Log.Verbose(added
+                ? $"[INFO] File created and enqueued: {e.FullPath}"
+                : $"[INFO] File created, but already in queue: {e.FullPath}");
         }
 
         private void OnDeleted(object sender, FileSystemEventArgs e)
         {
-            // maybe handle deletion logic here
+            // If you want special logic for deletions, you could do it here
             Log.Verbose($"File deleted: {e.FullPath}");
-
         }
 
         public void Dispose()
