@@ -33,3 +33,10 @@ jobs:
         uses: MarvinDrude/DotNet.GitHubActionMetrics@Deployment
         with:
           dir: . # Specify the root directory or adjust based on your solution/project location
+
+      # Upload the CODE_METRICS.md file as an artifact
+      - name: Upload Code Metrics Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-metrics-report
+          path: CODE_METRICS.md
