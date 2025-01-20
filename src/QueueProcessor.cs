@@ -2,13 +2,14 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Serilog;
 using ImageMagick;
 
 namespace NENA
 {
     public sealed class QueueProcessor
     {
-        private readonly UniqueFileQueue _fileQueue;  // <- changed
+        private readonly UniqueFileQueue _fileQueue;  
         private readonly SemaphoreSlim _semaphore;
         private readonly string[] _outputFormats;
         private readonly string _uploadsPath;
@@ -46,7 +47,7 @@ namespace NENA
 
                     if (File.Exists(targetPath) && new FileInfo(targetPath).Length > 0)
                     {
-                        Console.WriteLine($"[SKIP] {targetPath} already exists.");
+                        Log.Verbose($"[SKIP] {targetPath} already exists.");
                         continue;
                     }
 
@@ -79,18 +80,18 @@ namespace NENA
                     }
                     catch (Exception conversionEx)
                     {
-                        Console.Error.WriteLine($"[ERROR] Conversion to {format} failed for {filePath}: {conversionEx.Message}");
+                        Log.Error($"[ERROR] Conversion to {format} failed for {filePath}: {conversionEx.Message}");
                     }
 
                     stopwatch.Stop();
-                    Console.WriteLine($"{timerLabel} - Completed in {stopwatch.ElapsedMilliseconds}ms");
+                    Log.Information($"{timerLabel} - Completed in {stopwatch.ElapsedMilliseconds}ms");
 
                     PurgeFromCDN(targetPath);
                 }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[ERROR] Failed to process {filePath}: {ex.Message}");
+                Log.Error($"[ERROR] Failed to process {filePath}: {ex.Message}");
             }
             finally
             {
@@ -128,7 +129,7 @@ namespace NENA
                 return;
 
             // Simulate CDN purge request
-            Console.WriteLine($"[CDN PURGE] Request to purge {filePath} from cache.");
+            Log.Verbose($"[CDN PURGE] Request to purge {filePath} from cache.");
             // Implement CDN API call if needed
         }
     }
