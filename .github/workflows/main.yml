@@ -22,7 +22,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 8.0 # Adjust version as per your project needs
+          dotnet-version: 7.0 # Adjust version as per your project needs
 
       # Restore dependencies
       - name: Restore dependencies
@@ -31,10 +31,5 @@ jobs:
       # Run the .NET code metric analyzer
       - name: .NET Code Metric Analyzer
         uses: MarvinDrude/DotNet.GitHubActionMetrics@Deployment
-
-      # Upload Code Metrics Report (Optional)
-      - name: Upload Code Metrics Report
-        uses: actions/upload-artifact@v3
         with:
-          name: code-metrics-report
-          path: CodeMetricsReport.md # Adjust path if report location differs
+          dir: . # Specify the root directory or adjust based on your solution/project location
