@@ -51,7 +51,6 @@ namespace NENA
                     }
 
                     string timerLabel = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Converting {Path.GetFileName(filePath)} -> {targetPath}";
-                    Console.WriteLine(timerLabel);
                     var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
                     Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
