@@ -8,6 +8,7 @@ namespace NENA
     {
         private readonly UniqueFileQueue _fileQueue;   // <- changed
         private readonly string _uploadsPath;
+        private readonly string _outputPath;
         private readonly FileSystemWatcher _watcher;
 
         // Tracks whether the scanner is in the middle of scanning
@@ -22,6 +23,7 @@ namespace NENA
         {
             _fileQueue = queue;
             _uploadsPath = Config.Instance.UploadsPath!;
+            _outputPath = Path.Combine(_uploadsPath, Config.Instance.OutputFormats!);
 
             _watcher = new FileSystemWatcher(_uploadsPath)
             {
@@ -62,12 +64,10 @@ namespace NENA
                     // Determine the path of the file relative to _uploadsPath
                     var relativePath = Path.GetRelativePath(_uploadsPath, file);
 
-                    // If 'avif' is the first folder (or the entire relative path),
-                    // skip processing this file
-                    if (file.StartsWith(_uploadsPath + Path.DirectorySeparatorChar +  "avif" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-                       )
+                    // Skip files in the output folder
+                    if (file.StartsWith(_outputPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                     {
-//                        Log.Verbose($"Skipping file in avif folder: {file}");
+                        Log.Verbose($"Skipping file in output folder: {file}");
                         continue;
                     }
 
@@ -89,9 +89,15 @@ namespace NENA
             }
         }
 
-
         private void OnCreated(object sender, FileSystemEventArgs e)
         {
+            // Skip files in the output folder
+            if (e.FullPath.StartsWith(_outputPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Verbose($"[INFO] Ignored created file in output folder: {e.FullPath}");
+                return;
+            }
+
             // Try to enqueue; if it was already in the queue, this is a no-op
             bool added = _fileQueue.TryAdd(e.FullPath);
             Log.Verbose(added
