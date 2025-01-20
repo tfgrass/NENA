@@ -67,7 +67,7 @@ namespace NENA
                     // Skip files in the output folder
                     if (file.StartsWith(_outputPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                     {
-                        Log.Verbose($"Skipping file in output folder: {file}");
+//                        Log.Verbose($"Skipping file in output folder: {file}");
                         continue;
                     }
 
@@ -94,7 +94,7 @@ namespace NENA
             // Skip files in the output folder
             if (e.FullPath.StartsWith(_outputPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             {
-                Log.Verbose($"[INFO] Ignored created file in output folder: {e.FullPath}");
+//                Log.Verbose($"[INFO] Ignored created file in output folder: {e.FullPath}");
                 return;
             }
 

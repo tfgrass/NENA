@@ -17,7 +17,7 @@ namespace NENA
         {
             _fileQueue = queue;
             _semaphore = new SemaphoreSlim(maxConcurrency);
-            _uploadsPath = Config.Instance.UploadsPath ?? "/opt/app/uploads";
+            _uploadsPath = Config.Instance.UploadsPath!;
             _outputFormats = Config.Instance.OutputFormats?.Split(',') ?? new[] { "avif" };
         }
 
