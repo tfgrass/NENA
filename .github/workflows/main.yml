@@ -1,0 +1,51 @@
+name: Code Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  analyze-code:
+    name: Analyze Code
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up .NET
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0 # Adjust the version to match your project
+
+      # Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # Run code formatting check
+      - name: Run code formatting check
+        run: dotnet format --check
+
+      # Run code analysis
+      - name: Run code analysis
+        run: |
+          dotnet build --no-restore
+          dotnet format analyze --severity info
+
+      # Upload results
+      - name: Upload code analysis results
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-analysis-results
+          path: **/*.sarif # If using SARIF output, modify accordingly
+
+      # Optional: Fail the workflow on analysis issues
+      - name: Fail if issues found
+        run: exit 1
+        if: failure()
