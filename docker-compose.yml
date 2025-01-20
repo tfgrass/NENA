@@ -6,5 +6,6 @@ services:
       - ./testfolder:/app/uploads
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - DEBUG=true
+      - OUTPUT_FORMATS=webp,avif
+#      - DEBUG=true
     tty: true
